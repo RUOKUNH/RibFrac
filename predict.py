@@ -97,7 +97,7 @@ def _predict_single_image(model, dataloader, postprocess, prob_thresh,
     return pred
 
 
-def _make_submission_files(pred, image_id):
+def _make_submission_files(pred, image_id, affine):
     pred_label = (pred > 0.5).astype(np.int16)
     if pred_label.sum() > 0:
         print('detection succeed')
@@ -106,7 +106,7 @@ def _make_submission_files(pred, image_id):
     pred_proba = [0.0] + [region.mean_intensity for region in pred_regions]
     # placeholder for label class since classifaction isn't included
     pred_label_code = [0] + [1] * int(pred_label.max())
-    pred_image = stk.GetImageFromArray(pred_label)
+    pred_image = nib.Nifti1Image(pred_label.transpose(2,1,0), affine)
     pred_info = pd.DataFrame({
         "public_id": [image_id] * len(pred_index),
         "label_id": pred_index,
@@ -145,7 +145,7 @@ def predict(model, image_dir, pred_dir, unique, model_path = None, prob_thresh =
         # dataloader = data.DataLoader(dataset, batch_size = batch_size, collate_fn=UNetTestDataset._collate_fn)
         pred_arr = _predict_single_image(model, dataloader, postprocess,
             prob_thresh, bone_thresh, size_thresh)
-        pred_image, pred_info = _make_submission_files(pred_arr, image_id)
+        pred_image, pred_info = _make_submission_files(pred_arr, image_id, dataset.affine)
         print(image_id, " finished")
         pred_info_list.append(pred_info)
         pred_path = os.path.join(pred_dir, f"{image_id}_pred.nii.gz")
