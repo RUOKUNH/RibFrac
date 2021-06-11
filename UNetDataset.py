@@ -7,6 +7,7 @@ from torch.utils.data import Dataset, DataLoader
 from skimage.measure import regionprops
 import torch
 from itertools import product
+import nibabel as nib
 
 class UNetTrainDataset(Dataset):
     def __init__(self, data_root, label_root, crop_size = 64, 
@@ -199,8 +200,9 @@ class UNetTrainDataset(Dataset):
 class UNetTestDataset(Dataset):
 
     def __init__(self, image_path, crop_size=64, transforms=None):
-        image = stk.ReadImage(image_path)
-        self.image = stk.GetArrayFromImage(image)
+        image = nib.load(image_path)
+        self.affine = image.affine
+        self.image = image.get_fdata().transpose(2,1,0)
         self.crop_size = crop_size
         self.transforms = transforms
         self.centers = self._get_centers()
